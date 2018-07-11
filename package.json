@@ -38,7 +38,7 @@
     "eslint-config-standard": "^6.2.1",
     "eslint-plugin-promise": "^3.4.0",
     "eslint-plugin-standard": "^2.0.1",
-    "rollup": "^0.41.6",
+    "rollup": "^0.62",
     "rollup-plugin-babel": "^2.7.1",
     "rollup-plugin-bundle-worker": "^0.1.0",
     "rollup-plugin-commonjs": "^8.0.2",

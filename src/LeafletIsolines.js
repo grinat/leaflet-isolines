@@ -219,7 +219,7 @@ export const LeafletIsolines = L.Layer.extend({
    * @private
    */
   _getCacheId (points = []) {
-    return `${points.length}-${points[0][0]}-${points[0][1]}${points[points.length - 1][0]}-${points[points.length - 1][1]}`
+    return points.length + '-' + points[0][0] + '-' + points[0][1] + '-' + points[points.length - 1][0] + '-' + points[points.length - 1][1]
   },
   removeIsolines () {
     this._isolinesLayers.forEach(v => {
