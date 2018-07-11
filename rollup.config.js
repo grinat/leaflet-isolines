@@ -3,13 +3,15 @@ import commonjs from 'rollup-plugin-commonjs'
 import babel from 'rollup-plugin-babel'
 import uglify from 'rollup-plugin-uglify'
 import bundleWorker from 'rollup-plugin-bundle-worker'
+import sass from 'rollup-plugin-sass'
+const pkg = require('./package')
 
 export default [{
   input: 'src/isolinesWorker.js',
   output: {
     file: 'src/isolinesWorker.compiled.js',
     format: 'umd',
-    name: 'leaflet-isolines',
+    name: pkg.name,
     sourcemap: false
   },
   plugins: [
@@ -28,14 +30,20 @@ export default [{
 }, {
   input: 'src/index.js',
   output: {
-    file: 'dist/leaflet-isolines.js',
+    file: 'dist/' + pkg.name + '.js',
     format: 'umd',
-    name: 'leaflet-isolines',
+    name: pkg.name,
     sourcemap: true
   },
   plugins: [
     bundleWorker(),
+    babel({
+      exclude: ['**/*.compiled.js', '**/*.scss']
+    }),
     resolve(),
-    commonjs()
+    commonjs(),
+    sass({
+      output: 'dist/' + pkg.name + '.css'
+    })
   ]
 }]

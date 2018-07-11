@@ -11,7 +11,7 @@ Used [turfjs](http://turfjs.org/).
 import 'leaflet'
 // import script after leaflet
 import 'leaflet-isolines'
-import 'leaflet-isolines/src/leaflet-isolines.css'
+import 'leaflet-isolines/dist/leaflet-isolines.css'
 
 var options = {}
 var isoline = L.leafletIsolines([
@@ -37,7 +37,7 @@ import 'leaflet'
 import 'leaflet-polyline-decorator'
 // import script after leaflet
 import 'leaflet-isolines'
-import 'leaflet-isolines/src/leaflet-isolines.css'
+import 'leaflet-isolines/dist/leaflet-isolines.css'
 
 L.leafletIsolines([
   [lat, lng, value],

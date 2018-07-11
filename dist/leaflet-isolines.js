@@ -18,34 +18,36 @@
      * @param { String }    filename    The name of the file
      * @param { Function }  fn          Function wrapping the code of the worker
      */
-    function shimWorker (filename, fn) {
-        return function ShimWorker (forceFallback) {
+    function shimWorker(filename, fn) {
+        return function ShimWorker(forceFallback) {
             var o = this;
 
             if (!fn) {
                 return new Worker(filename);
-            }
-            else if (Worker && !forceFallback) {
+            } else if (Worker && !forceFallback) {
                 // Convert the function's inner code to a string to construct the worker
-                var source = `${ fn }`.replace(/^function.+?{/, '').slice(0, -1),
+                var source = ('' + fn).replace(/^function.+?{/, '').slice(0, -1),
                     objURL = createSourceObject(source);
 
                 this[TARGET] = new Worker(objURL);
                 URL.revokeObjectURL(objURL);
                 return this[TARGET];
-            }
-            else {
+            } else {
                 var selfShim = {
-                        postMessage: m => {
-                            if (o.onmessage) {
-                                setTimeout(() => o.onmessage({ data: m, target: selfShim }));
-                            }
+                    postMessage: function postMessage(m) {
+                        if (o.onmessage) {
+                            setTimeout(function () {
+                                return o.onmessage({ data: m, target: selfShim });
+                            });
                         }
-                    };
+                    }
+                };
 
                 fn.call(selfShim);
-                this.postMessage = m => {
-                    setTimeout(() => selfShim.onmessage({ data: m, target: o }));
+                this.postMessage = function (m) {
+                    setTimeout(function () {
+                        return selfShim.onmessage({ data: m, target: o });
+                    });
                 };
                 this.isThisThread = true;
             }
@@ -66,11 +68,9 @@
 
             // Native browser on some Samsung devices throws for transferables, let's detect it
             testWorker.postMessage(testArray, [testArray.buffer]);
-        }
-        catch (e) {
+        } catch (e) {
             Worker = null;
-        }
-        finally {
+        } finally {
             URL.revokeObjectURL(objURL);
             if (testWorker) {
                 testWorker.terminate();
@@ -81,8 +81,7 @@
     function createSourceObject(str) {
         try {
             return URL.createObjectURL(new Blob([str], { type: SCRIPT_TYPE }));
-        }
-        catch (e) {
+        } catch (e) {
             var blob = new BlobBuilder();
             blob.append(str);
             return URL.createObjectURL(blob.getBlob(type));
@@ -108,41 +107,44 @@
 
     });
 
-    function getDefaultColor (propValue) {
+    function getDefaultColor(propValue) {
       console.log('defaultColor', propValue);
-      let val = +(propValue.toString().split('-')[0]);
+      var val = +propValue.toString().split('-')[0];
       if (val > 255) {
         val = 255;
       } else if (val < 0) {
         val = 0;
       }
-      return `rgb(${val}, ${val}, ${val})`
+      return 'rgb(' + val + ', ' + val + ', ' + val + ')';
     }
 
     /* global L */
-    const IsolineMarker = L.Layer.extend({
+    var IsolineMarker = L.Layer.extend({
       options: {
         pane: 'markerPane',
         rotate: true,
         showedPosition: 'center'
       },
-      initialize (polylineLayer, caption = '', options, coords = []) {
+      initialize: function initialize(polylineLayer) {
+        var caption = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '';
+        var options = arguments[2];
+        var coords = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+
         L.setOptions(this, Object.assign(this.options, options));
 
         this._polylineLayer = polylineLayer;
-        this._coords = coords.map(ll => L.latLng(ll));
+        this._coords = coords.map(function (ll) {
+          return L.latLng(ll);
+        });
         this._caption = caption;
       },
-      addTo (map) {
+      addTo: function addTo(map) {
         map.addLayer(this);
-        return this
+        return this;
       },
-      onAdd (map) {
+      onAdd: function onAdd(map) {
         this._map = map;
-        let el = this._element = L.DomUtil.create(
-          'div',
-          'leaflet-zoom-animated leaflet-isolines-isoline-marker',
-          this._getMarkerPane(map));
+        var el = this._element = L.DomUtil.create('div', 'leaflet-zoom-animated leaflet-isolines-isoline-marker', this._getMarkerPane(map));
         L.DomUtil.create('div', '', el).innerHTML = this._caption;
 
         map.on('zoomanim', this._animateZoom, this);
@@ -150,98 +152,96 @@
         this._caclMarkerPos();
         this._setPosition();
       },
-      onRemove (map) {
+      onRemove: function onRemove(map) {
         map.off('zoomanim', this._animateZoom, this);
         this._getMarkerPane(map).removeChild(this._element);
         this._map = null;
       },
-      _getMarkerPane (map) {
-        return this.getPane
-          ? this.getPane()
-          : map.getPanes().markerPane
+      _getMarkerPane: function _getMarkerPane(map) {
+        return this.getPane ? this.getPane() : map.getPanes().markerPane;
       },
-      _caclMarkerPos () {
-        let latLngs = this._polylineLayer.getLatLngs
-          ? this._polylineLayer.getLatLngs()
-          : this._coords;
-        const showOn = this._getShowedIndex(latLngs.length);
-        for (let i = 1, len = latLngs.length; i < len; i++) {
+      _caclMarkerPos: function _caclMarkerPos() {
+        var latLngs = this._polylineLayer.getLatLngs ? this._polylineLayer.getLatLngs() : this._coords;
+        var showOn = this._getShowedIndex(latLngs.length);
+        for (var i = 1, len = latLngs.length; i < len; i++) {
           if (i === showOn) {
-            const ll1 = latLngs[i - 1];
-            const ll2 = latLngs[i % len];
+            var ll1 = latLngs[i - 1];
+            var ll2 = latLngs[i % len];
             this._setMarkerLatLng(ll1, ll2);
             this._setMarkerRotationAngle(ll1, ll2);
-            break
+            break;
           }
         }
       },
-      _getShowedIndex (len) {
+      _getShowedIndex: function _getShowedIndex(len) {
         if (len > 1 && this.options.showedPosition === 'center') {
-          return Math.round(len / 2)
+          return Math.round(len / 2);
         }
-        return len - 1
+        return len - 1;
       },
-      _setPosition () {
-        L.DomUtil.setPosition(
-          this._element,
-          this._map.latLngToLayerPoint(this._latlng)
-        );
+      _setPosition: function _setPosition() {
+        L.DomUtil.setPosition(this._element, this._map.latLngToLayerPoint(this._latlng));
         this._setElementRotate();
       },
-      _animateZoom (options) {
-        L.DomUtil.setPosition(
-          this._element,
-          this._map._latLngToNewLayerPoint(
-            this._latlng,
-            options.zoom,
-            options.center
-          ).round()
-        );
+      _animateZoom: function _animateZoom(options) {
+        L.DomUtil.setPosition(this._element, this._map._latLngToNewLayerPoint(this._latlng, options.zoom, options.center).round());
         this._setElementRotate();
       },
-      _setElementRotate () {
+      _setElementRotate: function _setElementRotate() {
         if (this.options.rotate) {
           this._element.style.transform += ' rotate(' + this._rotation + 'rad)';
         }
       },
-      _setMarkerLatLng (ll1, ll2) {
-        const p1 = this._map.latLngToLayerPoint(ll1);
-        const p2 = this._map.latLngToLayerPoint(ll2);
+      _setMarkerLatLng: function _setMarkerLatLng(ll1, ll2) {
+        var p1 = this._map.latLngToLayerPoint(ll1);
+        var p2 = this._map.latLngToLayerPoint(ll2);
 
-        this._latlng = this._map.layerPointToLatLng(
-          [(p1.x + p2.x) / 2, (p1.y + p2.y) / 2]
-        );
+        this._latlng = this._map.layerPointToLatLng([(p1.x + p2.x) / 2, (p1.y + p2.y) / 2]);
       },
-      _setMarkerRotationAngle (ll1, ll2) {
-        let p1 = this._map.project(ll1);
-        let p2 = this._map.project(ll2);
+      _setMarkerRotationAngle: function _setMarkerRotationAngle(ll1, ll2) {
+        var p1 = this._map.project(ll1);
+        var p2 = this._map.project(ll2);
 
         this._rotation = Math.atan((p2.y - p1.y) / (p2.x - p1.x));
       }
     });
 
-    (() => {
+    (function () {
       L.marker.isolineMarker = function (polylineLayer, caption, options, coords) {
-        return new IsolineMarker(polylineLayer, caption, options, coords)
+        return new IsolineMarker(polylineLayer, caption, options, coords);
       };
     })();
 
+    var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+      return typeof obj;
+    } : function (obj) {
+      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+    };
+
     /* global L */
 
-    const LeafletIsolines = L.Layer.extend({
+    var LeafletIsolines = L.Layer.extend({
       options: {
         propertyName: 'value',
         interpolateCellSize: 4,
-        isolyneCaption: (propVal) => propVal.toString(),
-        polylineOptions: (propVal, dataObj) => ({
-          color: getDefaultColor(propVal),
-          fillColor: getDefaultColor(propVal)
-        }),
-        polygonOptions: (propVal, dataObj) => ({
-          color: getDefaultColor(propVal),
-          fillColor: getDefaultColor(propVal)
-        }),
-        isolineMarkerOptions: (propVal, dataObj) => ({}),
+        isolyneCaption: function isolyneCaption(propVal) {
+          return propVal.toString();
+        },
+        polylineOptions: function polylineOptions(propVal, dataObj) {
+          return {
+            color: getDefaultColor(propVal),
+            fillColor: getDefaultColor(propVal)
+          };
+        },
+        polygonOptions: function polygonOptions(propVal, dataObj) {
+          return {
+            color: getDefaultColor(propVal),
+            fillColor: getDefaultColor(propVal)
+          };
+        },
+        isolineMarkerOptions: function isolineMarkerOptions(propVal, dataObj) {
+          return {};
+        },
         bounds: [],
         showPolylines: true,
         showPolygons: true,
@@ -253,22 +253,33 @@
       _isolinesLayers: [],
       _points: [],
       _breaks: [0, 1, 2, 3, 4, 5],
-      initialize (points = [], breaks = [], options = {}) {
+      initialize: function initialize() {
+        var points = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+
+        var _this = this;
+
+        var breaks = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
+        var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
         L.Util.setOptions(this, Object.assign(this.options, options));
         this._points = points;
         this._breaks = breaks;
         this._isolinesWorker = new IsolinesWorker();
-        this._isolinesWorker.addEventListener('message', (e) => this._onIsolinesWorker(e));
+        this._isolinesWorker.addEventListener('message', function (e) {
+          return _this._onIsolinesWorker(e);
+        });
         if (!window.leafletIsolinesOutputCache) {
           window.leafletIsolinesOutputCache = {};
         }
         this.outputCache = window.leafletIsolinesOutputCache;
       },
-      _onIsolinesWorker ({data}) {
+      _onIsolinesWorker: function _onIsolinesWorker(_ref) {
+        var data = _ref.data;
+
         console.log('onIsolinesWorker', data);
         try {
           if (data.error) {
-            throw new Error(data.error)
+            throw new Error(data.error);
           }
           this._data = data;
           this.saveInCache(data);
@@ -279,28 +290,28 @@
             msg: e.toString()
           });
         } finally {
-          const endAt = +new Date();
-          const generatedTime = endAt - data.startAt;
+          var endAt = +new Date();
+          var generatedTime = endAt - data.startAt;
           console.log('generatedTime', generatedTime);
           this.fire('end', {
-            generatedTime
+            generatedTime: generatedTime
           });
         }
       },
-      onAdd (map) {
+      onAdd: function onAdd(map) {
         this._map = map;
         this.setData(this._points, this._breaks);
       },
-      addTo (map) {
+      addTo: function addTo(map) {
         map.addLayer(this);
         // this.setData(this._points, this._breaks)
-        return this
+        return this;
       },
-      setData (points, breaks) {
+      setData: function setData(points, breaks) {
         this._points = points || this._points;
         this._breaks = breaks || this._breaks;
         this.fire('start');
-        const data = {
+        var data = {
           points: this._points,
           breaks: this._breaks,
           options: this.options
@@ -309,144 +320,115 @@
           this._onIsolinesWorker({
             data: this._getFromCache(data.points)
           });
-          return
+          return;
         }
-        this._isolinesWorker.postMessage(
-          JSON.parse(
-            JSON.stringify(
-              data,
-              this._avoidCircularReference(data)
-            )
-          )
-        );
+        this._isolinesWorker.postMessage(JSON.parse(JSON.stringify(data, this._avoidCircularReference(data))));
       },
-      _avoidCircularReference (obj) {
+      _avoidCircularReference: function _avoidCircularReference(obj) {
         return function (key, value) {
-          return key && typeof value === 'object' && obj === value ? undefined : value
-        }
+          return key && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && obj === value ? undefined : value;
+        };
       },
-      _drawPolylines () {
-        this._data.polylines.forEach(v => {
-          const {coordinates = [], properties = {}} = v;
+      _drawPolylines: function _drawPolylines() {
+        var _this2 = this;
+
+        this._data.polylines.forEach(function (v) {
+          var _v$coordinates = v.coordinates,
+              coordinates = _v$coordinates === undefined ? [] : _v$coordinates,
+              _v$properties = v.properties,
+              properties = _v$properties === undefined ? {} : _v$properties;
+
           if (coordinates.length > 0) {
-            const caption = this.options.isolyneCaption
-              ? this.options.isolyneCaption(properties[this.options.propertyName])
-              : properties[this.options.propertyName];
-            let layerPolyline = this.createPolyline(
-              coordinates,
-              this.options.polylineOptions(
-                properties[this.options.propertyName],
-                v
-              )
-            );
-            layerPolyline.addTo(this._map);
-            if (caption && this.options.showIsolineMarkers) {
-              const marker = this.createIsolineMarker(
-                layerPolyline,
-                caption,
-                this.options.isolineMarkerOptions(
-                  properties[this.options.propertyName],
-                  v
-                ),
-                coordinates
-              );
-              marker.addTo(this._map);
-              this.fire('isolineMarker.add', {
-                marker,
-                coordinates,
-                properties
+            var caption = _this2.options.isolyneCaption ? _this2.options.isolyneCaption(properties[_this2.options.propertyName]) : properties[_this2.options.propertyName];
+            var layerPolyline = _this2.createPolyline(coordinates, _this2.options.polylineOptions(properties[_this2.options.propertyName], v));
+            layerPolyline.addTo(_this2._map);
+            if (caption && _this2.options.showIsolineMarkers) {
+              var marker = _this2.createIsolineMarker(layerPolyline, caption, _this2.options.isolineMarkerOptions(properties[_this2.options.propertyName], v), coordinates);
+              marker.addTo(_this2._map);
+              _this2.fire('isolineMarker.add', {
+                marker: marker,
+                coordinates: coordinates,
+                properties: properties
               });
             }
-            this.fire('polyline.add', {
-              layerPolyline,
-              coordinates,
-              properties
+            _this2.fire('polyline.add', {
+              layerPolyline: layerPolyline,
+              coordinates: coordinates,
+              properties: properties
             });
           }
         });
       },
-      _drawPolygons () {
-        this._data.polygons.forEach(v => {
-          const {coordinates = [], properties = {}} = v;
+      _drawPolygons: function _drawPolygons() {
+        var _this3 = this;
+
+        this._data.polygons.forEach(function (v) {
+          var _v$coordinates2 = v.coordinates,
+              coordinates = _v$coordinates2 === undefined ? [] : _v$coordinates2,
+              _v$properties2 = v.properties,
+              properties = _v$properties2 === undefined ? {} : _v$properties2;
+
           if (coordinates.length > 0) {
-            const layerPolygon = this.createPolygon(
-              coordinates,
-              this.options.polygonOptions(
-                properties[this.options.propertyName],
-                v
-              )
-            );
-            layerPolygon.addTo(this._map);
-            this.fire('polygon.add', {
-              layerPolygon,
-              coordinates,
-              properties
+            var layerPolygon = _this3.createPolygon(coordinates, _this3.options.polygonOptions(properties[_this3.options.propertyName], v));
+            layerPolygon.addTo(_this3._map);
+            _this3.fire('polygon.add', {
+              layerPolygon: layerPolygon,
+              coordinates: coordinates,
+              properties: properties
             });
           }
         });
       },
-      _drawIsolines () {
+      _drawIsolines: function _drawIsolines() {
         this.removeIsolines();
         this.options.showPolylines && this._drawPolylines();
         this.options.showPolygons && this._drawPolygons();
       },
-      redrawIsolines () {
+      redrawIsolines: function redrawIsolines() {
         this._drawIsolines();
       },
-      createPolygon (coordinates, options) {
-        return L.polygon(
-          coordinates,
-          options
-        )
+      createPolygon: function createPolygon(coordinates, options) {
+        return L.polygon(coordinates, options);
       },
-      createIsolineMarker (polyline, caption, options, coordinates) {
-        return L.marker.isolineMarker(
-          polyline,
-          caption,
-          options,
-          coordinates
-        )
+      createIsolineMarker: function createIsolineMarker(polyline, caption, options, coordinates) {
+        return L.marker.isolineMarker(polyline, caption, options, coordinates);
       },
-      createPolyline (coordinates, options) {
+      createPolyline: function createPolyline(coordinates, options) {
         if (!L.polylineDecorator) {
           console.warn('You can use https://github.com/bbecquet/Leaflet.PolylineDecorator for draw polylines');
-          return L.polyline(
-            coordinates,
-            options
-          )
+          return L.polyline(coordinates, options);
         }
-        return L.polylineDecorator(
-          coordinates,
-          options
-        )
+        return L.polylineDecorator(coordinates, options);
       },
-      saveInCache (output) {
-        this.outputCache[this._getCacheId(output.points)] = Object.assign(
-          output,
-          {
-            savedAt: +new Date()
-          }
-        );
+      saveInCache: function saveInCache(output) {
+        this.outputCache[this._getCacheId(output.points)] = Object.assign(output, {
+          savedAt: +new Date()
+        });
       },
-      _isInCache (points = []) {
-        return this.options.enableCache && this.outputCache.hasOwnProperty(
-          this._getCacheId(points)
-        )
+      _isInCache: function _isInCache() {
+        var points = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+
+        return this.options.enableCache && this.outputCache.hasOwnProperty(this._getCacheId(points));
       },
-      _getFromCache (points = []) {
-        return this.outputCache[this._getCacheId(points)]
+      _getFromCache: function _getFromCache() {
+        var points = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+
+        return this.outputCache[this._getCacheId(points)];
       },
+
       /**
        * id = len-firstPoint.lat-firstPoint.lng-lastPoint.lat-lastPoint.lng
        * @param points
        * @returns {string}
        * @private
        */
-      _getCacheId (points = []) {
-        return points.length + '-' + points[0][0] + '-' + points[0][1] + '-' + points[points.length - 1][0] + '-' + points[points.length - 1][1]
+      _getCacheId: function _getCacheId() {
+        var points = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [];
+
+        return points.length + '-' + points[0][0] + '-' + points[0][1] + points[points.length - 1][0] + '-' + points[points.length - 1][1];
       },
-      removeIsolines () {
-        this._isolinesLayers.forEach(v => {
+      removeIsolines: function removeIsolines() {
+        this._isolinesLayers.forEach(function (v) {
           v.remove();
         });
         this._isolinesLayers = [];
@@ -455,9 +437,9 @@
 
     /* global L */
 
-    var index = (() => {
+    var index = (function () {
       L.leafletIsolines = function (points, breaks, options) {
-        return new LeafletIsolines(points, breaks, options)
+        return new LeafletIsolines(points, breaks, options);
       };
     })();
 

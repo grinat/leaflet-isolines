@@ -7,7 +7,6 @@
   transform-origin: 0;
   pointer-events: none;
 }
-
 .leaflet-isolines-isoline-marker > div {
   position: relative;
   margin-top: -25%;
