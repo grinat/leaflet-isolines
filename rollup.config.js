@@ -5,9 +5,13 @@ import uglify from 'rollup-plugin-uglify'
 import bundleWorker from 'rollup-plugin-bundle-worker'
 
 export default [{
-  entry: 'src/isolinesWorker.js',
-  format: 'umd',
-  moduleName: 'leaflet-isolines',
+  input: 'src/isolinesWorker.js',
+  output: {
+    file: 'src/isolinesWorker.compiled.js',
+    format: 'umd',
+    name: 'leaflet-isolines',
+    sourcemap: false
+  },
   plugins: [
     resolve(),
     babel(),
@@ -20,19 +24,18 @@ export default [{
         evaluate: false
       }
     })
-  ],
-  sourceMap: true,
-  dest: 'src/isolinesWorker.compiled.js'
+  ]
 }, {
-  entry: 'src/index.js',
-  format: 'umd',
-  moduleName: 'leaflet-isolines',
+  input: 'src/index.js',
+  output: {
+    file: 'dist/leaflet-isolines.js',
+    format: 'umd',
+    name: 'leaflet-isolines',
+    sourcemap: true
+  },
   plugins: [
     bundleWorker(),
     resolve(),
     commonjs()
-  ],
-  external: ['leaflet'],
-  sourceMap: true,
-  dest: 'dist/leaflet-isolines.js'
+  ]
 }]
