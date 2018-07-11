@@ -20,8 +20,9 @@
   },
   "homepage": "https://github.com/grinat/leaflet-isolines#readme",
   "dependencies": {
-    "@turf/turf": "^5.1.6",
-    "leaflet-polylinedecorator": "^1.6.0"
+    "@turf/interpolate": "^5.1.5",
+    "@turf/isobands": "^5.1.5",
+    "@turf/isolines": "^5.1.5"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",

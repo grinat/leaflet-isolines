@@ -1,5 +1,6 @@
-import 'leaflet-polylinedecorator'
-import IsolinesWorker from 'worker!./isolinesWorker.js'
+/* global L */
+// import IsolinesWorker from 'worker!./isolinesWorker.js'
+import IsolinesWorker from 'worker!./isolinesWorker.compiled.js'
 import {getDefaultColor} from './utils'
 import './IsolineMarker'
 
@@ -183,6 +184,13 @@ export const LeafletIsolines = L.Layer.extend({
     )
   },
   createPolyline (coordinates, options) {
+    if (!L.polylineDecorator) {
+      console.warn('You can use https://github.com/bbecquet/Leaflet.PolylineDecorator for draw polylines')
+      return L.polyline(
+        coordinates,
+        options
+      )
+    }
     return L.polylineDecorator(
       coordinates,
       options

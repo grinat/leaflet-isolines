@@ -1,4 +1,6 @@
-import {interpolate, isolines, isobands} from "@turf/turf/index"
+import interpolate from "@turf/interpolate"
+import isobands from "@turf/isobands"
+import isolines from "@turf/isolines"
 
 export default class IsolineCalc {
   constructor (data) {

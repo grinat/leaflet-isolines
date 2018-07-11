@@ -1,7 +1,5 @@
 .DS_Store
 node_modules/
-dist/
-dist_test/
 npm-debug.log
 yarn-error.log
 .vers/

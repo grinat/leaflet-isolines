@@ -1,3 +1,4 @@
+/* global L */
 import LeafletIsolines from './LeafletIsolines'
 
 export default (() => {

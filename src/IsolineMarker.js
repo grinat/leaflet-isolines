@@ -1,3 +1,4 @@
+/* global L */
 export const IsolineMarker = L.Layer.extend({
   options: {
     pane: 'markerPane',
@@ -54,7 +55,7 @@ export const IsolineMarker = L.Layer.extend({
     }
   },
   _getShowedIndex (len) {
-    if (len > 1 && this.options.showedPosition == 'center') {
+    if (len > 1 && this.options.showedPosition === 'center') {
       return Math.round(len / 2)
     }
     return len - 1
