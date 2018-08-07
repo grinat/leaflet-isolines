@@ -1,10 +1,11 @@
 ## leaflet-isolines
 [Leaflet](http://www.leafletjs.com) plugin for draw isolines.
-Used [turfjs](http://turfjs.org/).
+Used [turfjs](http://turfjs.org/), isolines caclulating in worker.
 
 ### Example
-[Open](https://github.com/grinat/leaflet-isolines/blob/master/examples/index.html) (see in /examples)
+[Open](https://grinat.github.io/leaflet-isolines/examples/index.html) (see in /examples)
 
+![Example screen](examples/example.jpg)
 
 ### Usage
 ```
@@ -13,11 +14,19 @@ import 'leaflet'
 import 'leaflet-isolines'
 import 'leaflet-isolines/dist/leaflet-isolines.css'
 
+// points for calc
+var points = [
+   [lat, lng, value],
+   ...
+]
+//values for which will be drawn isolines
+var breaks = [1, 2, ...]
+
+// see options section
 var options = {}
-var isoline = L.leafletIsolines([
-  [lat, lng, value],
-  ...
-], [1, 2, ...], options)
+
+// init
+var isoline = L.leafletIsolines(points, breaks, options)
 isoline.on('start', function () {
   // on start calc isolines in worker
 })
@@ -48,9 +57,9 @@ L.leafletIsolines([
 
 ### Events
 
-start
+start - on start calculating
 
-end
+end - on end calculating
 
 error => ({msg})
 
@@ -75,21 +84,30 @@ polygon.add => ({
 ### Options
 
 ```
-    propertyName: 'value',
-    interpolateCellSize: 4,
+    // caption of isoline which showed on isoline
     isolyneCaption: (propVal) => propVal.toString(),
+    // L.polyline options
     polylineOptions: (propVal, dataObj) => ({
-      color: getDefaultColor(propVal),
-      fillColor: getDefaultColor(propVal)
+      color: 'red',
+      fillColor: 'blue'
     }),
+    // L.polygon or L.polylineDecorator options
     polygonOptions: (propVal, dataObj) => ({
-      color: getDefaultColor(propVal),
-      fillColor: getDefaultColor(propVal)
+      color: 'red',
+      fillColor: 'blue'
     }),
-    isolineMarkerOptions: (propVal, dataObj) => ({}),
+    // marker options
+    isolineMarkerOptions: (propVal, dataObj) => ({
+      rotate: true,
+      showedPosition: 'center'
+    }),
+    // increases the area in which the isolines are calculated
+    // [ [lat, lng], [lat, lng] ... ]
     bounds: [],
     showPolylines: true,
     showPolygons: true,
     showIsolineMarkers: true,
+    // save result of calc in global variable or not
+    // results cached on coords hash
     enableCache: false
 ```
