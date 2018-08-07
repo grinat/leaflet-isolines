@@ -1,6 +1,5 @@
 export function getDefaultColor (propValue) {
-  console.log('defaultColor', propValue)
-  let val = +(propValue.toString().split('-')[0])
+  let val = +(propValue.toString().split('-')[0]) * 20
   if (val > 255) {
     val = 255
   } else if (val < 0) {

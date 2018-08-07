@@ -33,15 +33,20 @@ export const LeafletIsolines = L.Layer.extend({
     L.Util.setOptions(this, Object.assign(this.options, options))
     this._points = points
     this._breaks = breaks
-    this._isolinesWorker = new IsolinesWorker()
-    this._isolinesWorker.addEventListener('message', (e) => this._onIsolinesWorker(e))
     if (!window.leafletIsolinesOutputCache) {
       window.leafletIsolinesOutputCache = {}
+    }
+    try {
+      this._isolinesWorker = new IsolinesWorker()
+      this._isolinesWorker.addEventListener('message', (e) => this._onIsolinesWorker(e))
+    } catch (e) {
+      this.fire('error', {
+        msg: e.toString()
+      })
     }
     this.outputCache = window.leafletIsolinesOutputCache
   },
   _onIsolinesWorker ({data}) {
-    console.log('onIsolinesWorker', data)
     try {
       if (data.error) {
         throw new Error(data.error)

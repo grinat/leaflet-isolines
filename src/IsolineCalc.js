@@ -94,7 +94,7 @@ export default class IsolineCalc {
     let flatBounds = []
     this._getFlatArray(bounds, flatBounds)
     let min = [999, 999]
-    let max = [-1, -1]
+    let max = [-999, -999]
     flatBounds.forEach(p => {
       if (p[0] > max[0]) {
         max[0] = p[0]
