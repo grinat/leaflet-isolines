@@ -1,11 +1,14 @@
 .leaflet-isolines-isoline-marker {
   position: absolute;
-  font-size: 11px;
+  font-size: 13px;
   color: black;
-  opacity: 0.8;
   white-space: nowrap;
   transform-origin: 0;
   pointer-events: none;
+  background: #fff;
+  border-radius: 3px;
+  padding-left: 10px;
+  padding-right: 5px;
 }
 .leaflet-isolines-isoline-marker > div {
   position: relative;
