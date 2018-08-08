@@ -1,9 +1,10 @@
 /* global L */
 // import IsolinesWorker from 'worker!./isolinesWorker.js'
 import IsolinesWorker from 'worker!./isolinesWorker.compiled.js'
-import {getDefaultColor} from './utils'
+import {getDefaultColor, detectIE} from './utils'
 import './IsolineMarker'
-import IsolineCalc from './IsolineCalc'
+import WorkerEmulate from './WorkerEmulate'
+import polyfills from './polyfills'
 
 export const LeafletIsolines = L.Layer.extend({
   options: {
@@ -34,6 +35,7 @@ export const LeafletIsolines = L.Layer.extend({
     this._points = points
     this._breaks = breaks
     try {
+      polyfills()
       for (let optKey in this.options) {
         if (options.hasOwnProperty(optKey) === false) {
           options[optKey] = this.options[optKey]
@@ -60,36 +62,18 @@ export const LeafletIsolines = L.Layer.extend({
   },
   _createWorker () {
     this._isolinesWorker = new IsolinesWorker()
-    this._isolinesWorker.addEventListener('error', (e) => this._handleError(e))
+    this._isolinesWorker.addEventListener('error', (e) => {
+      if (detectIE()) {
+        console.warn('ie worker error, recalc without worker')
+        this._createEmulateWorker()
+        this.calc()
+      } else {
+        this._handleError(e)
+      }
+    })
     this._isolinesWorker.addEventListener('message', (e) => this._onIsolinesCalcComplete(e))
   },
   _createEmulateWorker () {
-    const WorkerEmulate = class {
-      constructor () {
-        this._cb = null
-      }
-      postMessage (data) {
-        const startAt = +new Date()
-        try {
-          const isolineCalc = new IsolineCalc(data)
-          let computedData = isolineCalc.calcIsolines()
-          this._cb({
-            data: {
-              ...computedData,
-              startAt
-            }
-          })
-        } catch (e) {
-          const error = e.toString()
-          this._cb({
-            data: {error, startAt}
-          })
-        }
-      }
-      onComplete (cb) {
-        this._cb = cb
-      }
-    }
     this._isolinesWorker = new WorkerEmulate()
     this._isolinesWorker.onComplete(e => this._onIsolinesCalcComplete(e))
   },
@@ -123,6 +107,9 @@ export const LeafletIsolines = L.Layer.extend({
   setData (points, breaks) {
     this._points = points || this._points
     this._breaks = breaks || this._breaks
+    this.calc()
+  },
+  calc () {
     this.fire('start')
     const data = {
       points: this._points,

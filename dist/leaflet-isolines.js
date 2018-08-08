@@ -117,6 +117,31 @@
       return 'rgb(' + val + ', ' + val + ', ' + val + ')';
     }
 
+    // source: https://codepen.io/gapcode/pen/vEJNZN
+    function detectIE() {
+      var ua = window.navigator.userAgent;
+      var msie = ua.indexOf('MSIE ');
+      if (msie > 0) {
+        // IE 10 or older => return version number
+        return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
+      }
+
+      var trident = ua.indexOf('Trident/');
+      if (trident > 0) {
+        // IE 11 => return version number
+        var rv = ua.indexOf('rv:');
+        return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
+      }
+
+      var edge = ua.indexOf('Edge/');
+      if (edge > 0) {
+        // Edge (IE 12+) => return version number
+        return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
+      }
+      // other browser
+      return false;
+    }
+
     /* global L */
     var IsolineMarker = L.Layer.extend({
       options: {
@@ -7687,6 +7712,77 @@
       return IsolineCalc;
     }();
 
+    var WorkerEmulate = function () {
+      function WorkerEmulate() {
+        classCallCheck(this, WorkerEmulate);
+
+        this._cb = null;
+      }
+
+      createClass(WorkerEmulate, [{
+        key: 'postMessage',
+        value: function postMessage(data) {
+          var startAt = +new Date();
+          try {
+            var isolineCalc = new IsolineCalc(data);
+            var computedData = isolineCalc.calcIsolines();
+            this._cb({
+              data: _extends({}, computedData, {
+                startAt: startAt
+              })
+            });
+          } catch (e) {
+            var error = e.toString();
+            this._cb({
+              data: { error: error, startAt: startAt }
+            });
+          }
+        }
+      }, {
+        key: 'onComplete',
+        value: function onComplete(cb) {
+          this._cb = cb;
+        }
+      }]);
+      return WorkerEmulate;
+    }();
+
+    function create() {
+      // prevent object assign error in IE
+      // source: https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+      if (!Object.assign) {
+        Object.defineProperty(Object, 'assign', {
+          enumerable: false,
+          configurable: true,
+          writable: true,
+          value: function value(target, firstSource) {
+
+            if (target === undefined || target === null) {
+              throw new TypeError('Cannot convert first argument to object');
+            }
+
+            var to = Object(target);
+            for (var i = 1; i < arguments.length; i++) {
+              var nextSource = arguments[i];
+              if (nextSource === undefined || nextSource === null) {
+                continue;
+              }
+
+              var keysArray = Object.keys(Object(nextSource));
+              for (var nextIndex = 0, len = keysArray.length; nextIndex < len; nextIndex++) {
+                var nextKey = keysArray[nextIndex];
+                var desc = Object.getOwnPropertyDescriptor(nextSource, nextKey);
+                if (desc !== undefined && desc.enumerable) {
+                  to[nextKey] = nextSource[nextKey];
+                }
+              }
+            }
+            return to;
+          }
+        });
+      }
+    }
+
     /* global L */
 
     var LeafletIsolines = L.Layer.extend({
@@ -7730,6 +7826,7 @@
         this._points = points;
         this._breaks = breaks;
         try {
+          create();
           for (var optKey in this.options) {
             if (options.hasOwnProperty(optKey) === false) {
               options[optKey] = this.options[optKey];
@@ -7758,50 +7855,22 @@
         var _this = this;
 
         this._isolinesWorker = new IsolinesWorker();
+        this._isolinesWorker.addEventListener('error', function (e) {
+          if (detectIE()) {
+            console.warn('ie worker error, recalc without worker');
+            _this._createEmulateWorker();
+            _this.calc();
+          } else {
+            _this._handleError(e);
+          }
+        });
         this._isolinesWorker.addEventListener('message', function (e) {
           return _this._onIsolinesCalcComplete(e);
-        });
-        this._isolinesWorker.addEventListener('error', function (e) {
-          return _this._handleError(e);
         });
       },
       _createEmulateWorker: function _createEmulateWorker() {
         var _this2 = this;
 
-        var WorkerEmulate = function () {
-          function WorkerEmulate() {
-            classCallCheck(this, WorkerEmulate);
-
-            this._cb = null;
-          }
-
-          createClass(WorkerEmulate, [{
-            key: 'postMessage',
-            value: function postMessage(data) {
-              var startAt = +new Date();
-              try {
-                var isolineCalc = new IsolineCalc(data);
-                var computedData = isolineCalc.calcIsolines();
-                this._cb({
-                  data: _extends({}, computedData, {
-                    startAt: startAt
-                  })
-                });
-              } catch (e) {
-                var error = e.toString();
-                this._cb({
-                  data: { error: error, startAt: startAt }
-                });
-              }
-            }
-          }, {
-            key: 'onComplete',
-            value: function onComplete(cb) {
-              this._cb = cb;
-            }
-          }]);
-          return WorkerEmulate;
-        }();
         this._isolinesWorker = new WorkerEmulate();
         this._isolinesWorker.onComplete(function (e) {
           return _this2._onIsolinesCalcComplete(e);
@@ -7839,6 +7908,9 @@
       setData: function setData(points, breaks) {
         this._points = points || this._points;
         this._breaks = breaks || this._breaks;
+        this.calc();
+      },
+      calc: function calc() {
         this.fire('start');
         var data = {
           points: this._points,
