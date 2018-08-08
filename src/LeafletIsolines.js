@@ -3,6 +3,7 @@
 import IsolinesWorker from 'worker!./isolinesWorker.compiled.js'
 import {getDefaultColor} from './utils'
 import './IsolineMarker'
+import IsolineCalc from './IsolineCalc'
 
 export const LeafletIsolines = L.Layer.extend({
   options: {
@@ -30,23 +31,69 @@ export const LeafletIsolines = L.Layer.extend({
   _points: [],
   _breaks: [0, 1, 2, 3, 4, 5],
   initialize (points = [], breaks = [], options = {}) {
-    L.Util.setOptions(this, Object.assign(this.options, options))
     this._points = points
     this._breaks = breaks
-    if (!window.leafletIsolinesOutputCache) {
-      window.leafletIsolinesOutputCache = {}
-    }
     try {
-      this._isolinesWorker = new IsolinesWorker()
-      this._isolinesWorker.addEventListener('message', (e) => this._onIsolinesWorker(e))
+      for (let optKey in this.options) {
+        if (options.hasOwnProperty(optKey) === false) {
+          options[optKey] = this.options[optKey]
+        } else if (typeof options[optKey] !== typeof this.options[optKey]) {
+          throw new Error(optKey + ' option must be a ' + typeof this.options[optKey])
+        }
+      }
+      L.Util.setOptions(this, options)
+      if (!window.leafletIsolinesOutputCache) {
+        window.leafletIsolinesOutputCache = {}
+      }
+      this.outputCache = window.leafletIsolinesOutputCache
     } catch (e) {
-      this.fire('error', {
-        msg: e.toString()
-      })
+      this._handleError(e)
+      return
     }
-    this.outputCache = window.leafletIsolinesOutputCache
+
+    try {
+      this._createWorker()
+    } catch (e) {
+      console.warn('worker init error, calc may be slow')
+      this._createEmulateWorker()
+    }
   },
-  _onIsolinesWorker ({data}) {
+  _createWorker () {
+    this._isolinesWorker = new IsolinesWorker()
+    this._isolinesWorker.addEventListener('error', (e) => this._handleError(e))
+    this._isolinesWorker.addEventListener('message', (e) => this._onIsolinesCalcComplete(e))
+  },
+  _createEmulateWorker () {
+    const WorkerEmulate = class {
+      constructor () {
+        this._cb = null
+      }
+      postMessage (data) {
+        const startAt = +new Date()
+        try {
+          const isolineCalc = new IsolineCalc(data)
+          let computedData = isolineCalc.calcIsolines()
+          this._cb({
+            data: {
+              ...computedData,
+              startAt
+            }
+          })
+        } catch (e) {
+          const error = e.toString()
+          this._cb({
+            data: {error, startAt}
+          })
+        }
+      }
+      onComplete (cb) {
+        this._cb = cb
+      }
+    }
+    this._isolinesWorker = new WorkerEmulate()
+    this._isolinesWorker.onComplete(e => this._onIsolinesCalcComplete(e))
+  },
+  _onIsolinesCalcComplete ({data}) {
     try {
       if (data.error) {
         throw new Error(data.error)
@@ -55,14 +102,10 @@ export const LeafletIsolines = L.Layer.extend({
       this.saveInCache(data)
       this._drawIsolines()
     } catch (e) {
-      console.error(e)
-      this.fire('error', {
-        msg: e.toString()
-      })
+      this._handleError(e)
     } finally {
       const endAt = +new Date()
       const generatedTime = endAt - data.startAt
-      console.log('generatedTime', generatedTime)
       this.fire('end', {
         generatedTime
       })
@@ -87,7 +130,7 @@ export const LeafletIsolines = L.Layer.extend({
       options: this.options
     }
     if (this._isInCache(data.points)) {
-      this._onIsolinesWorker({
+      this._onIsolinesCalcComplete({
         data: this._getFromCache(data.points)
       })
       return
@@ -231,6 +274,13 @@ export const LeafletIsolines = L.Layer.extend({
       v.remove()
     })
     this._isolinesLayers = []
+  },
+  _handleError (e) {
+    setTimeout(() => {
+      this.fire('error', {
+        msg: e.toString()
+      })
+    }, 0)
   }
 })
 

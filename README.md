@@ -1,11 +1,16 @@
 ## leaflet-isolines
 [Leaflet](http://www.leafletjs.com) plugin for draw isolines.
-Used [turfjs](http://turfjs.org/), isolines caclulating in worker.
+Used [turfjs](http://turfjs.org/), isolines caclulating in worker if possible.
+
+### Install
+```
+npm i leaflet-isolines
+```
 
 ### Example
 [Open](https://grinat.github.io/leaflet-isolines/examples/index.html) (see in /examples)
 
-![Example screen](examples/example.jpg)
+![Example screen](https://grinat.github.io/leaflet-isolines/examples/example.jpg)
 
 ### Usage
 ```
@@ -85,6 +90,7 @@ polygon.add => ({
 
 ```
     // caption of isoline which showed on isoline
+    // return null or false for hide
     isolyneCaption: (propVal) => propVal.toString(),
     // L.polyline options
     polylineOptions: (propVal, dataObj) => ({

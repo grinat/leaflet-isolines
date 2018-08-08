@@ -1,6 +1,6 @@
 {
   "name": "leaflet-isolines",
-  "version": "0.1.1-alpha.0",
+  "version": "0.1.1-alpha.1",
   "description": "Leaflet isolines plugin",
   "main": "dist/leaflet-isolines.js",
   "scripts": {
@@ -13,7 +13,7 @@
     "map",
     "isolines"
   ],
-  "author": "Gabdrasitov Rinat <paladin2012gnu@gmail.com>",
+  "author": "Gabdrashitov Rinat <paladin2012gnu@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/grinat/leaflet-isolines/issues"
