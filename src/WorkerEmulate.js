@@ -9,7 +9,10 @@ export default class WorkerEmulate {
     const startAt = +new Date()
     try {
       const isolineCalc = new IsolineCalc(data)
-      let computedData = isolineCalc.calcIsolines()
+      let computedData = isolineCalc
+        .calcIsolines()
+        .recaclOnEmpty()
+        .getComputedPoly()
       this._cb({
         data: {
           ...computedData,
@@ -21,6 +24,7 @@ export default class WorkerEmulate {
       this._cb({
         data: {error, startAt}
       })
+      console.error(e)
     }
   }
 

@@ -3,46 +3,81 @@ import isobands from "@turf/isobands"
 import isolines from "@turf/isolines"
 
 export default class IsolineCalc {
-  constructor (data) {
+  constructor (data = {}) {
     this.setData(data)
   }
 
-  setData (data) {
-    this._data = data
+  setData ({points, breaks, options}) {
+    this._points = points
+    this._breaks = breaks
+    this._options = options
   }
 
+  /**
+   * @returns {IsolineCalc}
+   */
   calcIsolines () {
-    const {points, breaks, options} = this._data
-    const pointGrid = this._getPointGrid(
-      points,
-      options
-    )
+    this.pointGrid = this._getPointGrid()
     // get isolines
-    const multiLineStringFeatures = this._getLines(
-      pointGrid,
-      breaks,
-      options
-    )
-    let polylines = this._transformMultiToArray(
-      multiLineStringFeatures
-    )
+    this.multiLineStringFeatures = this._getLines(this.pointGrid)
+    this.polylines = this._transformMultiToArray(this.multiLineStringFeatures)
     // get polygons
-    let multiPolygonFeature = this._getPolygons(
-      pointGrid,
-      breaks,
-      options
-    )
-    let polygons = this._transformMultiToArray(
-      multiPolygonFeature
-    )
-    return {
-      points,
-      pointGrid,
-      multiLineStringFeatures,
-      multiPolygonFeature,
-      polylines,
-      polygons
+    this.multiPolygonFeature = this._getPolygons(this.pointGrid)
+    this.polygons = this._transformMultiToArray(this.multiPolygonFeature)
+    return this
+  }
+
+  createBoundsFromPoints () {
+    const {min, max} = this._getMinAndMax(this._points)
+    this._options.bounds = [
+      [min[0] - 0.3, min[1] - 0.3],
+      [max[0] + 0.3, max[1] + 0.3]
+    ]
+  }
+
+  /**
+   * @returns {IsolineCalc}
+   */
+  recaclOnEmpty () {
+    if (this.hasBoundsInOptions() === false && this.lastCalcGeometryEmpty() === true) {
+      const warnMsg = 'Polylines and polygons are empty, recacl with bounds from points. ' +
+        'You can set isolines bounds manually: ' +
+        'L.leafletIsolines(points, breaks, {bounds: [[lat,lng],[lat,lng]]})'
+      if (self && self.console) {
+        self.console.warn(warnMsg)
+      } else {
+        console.warn(warnMsg)
+      }
+      this.createBoundsFromPoints()
+      this.calcIsolines()
     }
+    return this
+  }
+
+  hasBoundsInOptions () {
+    return this._options.bounds && this._options.bounds.length > 0
+  }
+
+  lastCalcGeometryEmpty () {
+    return this._geometryEmpty(this.multiLineStringFeatures) === true && this._geometryEmpty(this.multiPolygonFeature) === true
+  }
+
+  getComputedPoly () {
+    return {
+      points: this._points,
+      breaks: this._breaks,
+      polygons: this.polygons,
+      polylines: this.polylines
+    }
+  }
+
+  _geometryEmpty (feature = {}) {
+    for (let i = 0; i < feature.features.length; i++) {
+      if (feature.features[i].geometry && feature.features[i].geometry.coordinates.length > 0) {
+        return false
+      }
+    }
+    return true
   }
 
   _transformMultiToArray (multi) {
@@ -60,22 +95,22 @@ export default class IsolineCalc {
     return polylines
   }
 
-  _getPolygons (pointGrid, breaks, options) {
+  _getPolygons (pointGrid) {
     return isobands(
       pointGrid,
-      breaks,
+      this._breaks,
       {
-        zProperty: options.propertyName
+        zProperty: this._options.propertyName
       }
     )
   }
 
-  _getLines (pointGrid, breaks, options) {
+  _getLines (pointGrid) {
     return isolines(
       pointGrid,
-      breaks,
+      this._breaks,
       {
-        zProperty: options.propertyName
+        zProperty: this._options.propertyName
       }
     )
   }
@@ -93,8 +128,8 @@ export default class IsolineCalc {
   _getMinAndMax (bounds) {
     let flatBounds = []
     this._getFlatArray(bounds, flatBounds)
-    let min = [999, 999]
-    let max = [-999, -999]
+    let min = [Infinity, Infinity]
+    let max = [-Infinity, -Infinity]
     flatBounds.forEach(p => {
       if (p[0] > max[0]) {
         max[0] = p[0]
@@ -115,23 +150,23 @@ export default class IsolineCalc {
     }
   }
 
-  _getPointGrid (inputPoints, options) {
-    let points = inputPoints.slice()
-    if (options.bounds && options.bounds.length > 0) {
-      let {min, max} = this._getMinAndMax(options.bounds)
+  _getPointGrid () {
+    let points = this._points.slice()
+    if (this.hasBoundsInOptions()) {
+      let {min, max} = this._getMinAndMax(this._options.bounds)
       points.push([...min, 0])
       points.push([...max, 0])
     }
     const feature = this._pointsToFeatureCollection(
       points,
-      options.propertyName
+      this._options.propertyName
     )
     return interpolate(
       feature,
-      options.interpolateCellSize,
+      this._options.interpolateCellSize,
       {
         gridType: 'points',
-        property: options.propertyName
+        property: this._options.propertyName
       }
     )
   }

@@ -4,7 +4,10 @@ self.addEventListener('message', ({data}) => {
   const startAt = +new Date()
   try {
     const isolineCalc = new IsolineCalc(data)
-    let computedData = isolineCalc.calcIsolines()
+    let computedData = isolineCalc
+      .calcIsolines()
+      .recaclOnEmpty()
+      .getComputedPoly()
     self.postMessage(
       Object.assign(computedData, {startAt})
     )
@@ -14,5 +17,6 @@ self.addEventListener('message', ({data}) => {
       error,
       startAt
     })
+    self.console.error(e)
   }
 })
