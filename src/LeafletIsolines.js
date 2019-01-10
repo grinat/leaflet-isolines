@@ -24,7 +24,8 @@ export const LeafletIsolines = L.Layer.extend({
     showPolylines: true,
     showPolygons: true,
     showIsolineMarkers: true,
-    enableCache: false
+    enableCache: false,
+    dontUseWorker: false
   },
   outputCache: {},
   _data: null,
@@ -61,6 +62,10 @@ export const LeafletIsolines = L.Layer.extend({
     }
   },
   _createWorker () {
+    if (this.options.dontUseWorker === true) {
+      this._createEmulateWorker()
+      return
+    }
     this._isolinesWorker = new IsolinesWorker()
     this._isolinesWorker.addEventListener('error', (e) => {
       if (detectIE()) {
@@ -102,6 +107,10 @@ export const LeafletIsolines = L.Layer.extend({
   addTo (map) {
     map.addLayer(this)
     // this.setData(this._points, this._breaks)
+    return this
+  },
+  onRemove () {
+    this.removeIsolines()
     return this
   },
   setData (points, breaks) {
@@ -151,6 +160,7 @@ export const LeafletIsolines = L.Layer.extend({
           )
         )
         layerPolyline.addTo(this._map)
+        this._isolinesLayers.push(layerPolyline)
         if (caption && this.options.showIsolineMarkers) {
           const marker = this.createIsolineMarker(
             layerPolyline,
@@ -162,6 +172,7 @@ export const LeafletIsolines = L.Layer.extend({
             coordinates
           )
           marker.addTo(this._map)
+          this._isolinesLayers.push(marker)
           this.fire('isolineMarker.add', {
             marker,
             coordinates,
@@ -188,6 +199,7 @@ export const LeafletIsolines = L.Layer.extend({
           )
         )
         layerPolygon.addTo(this._map)
+        this._isolinesLayers.push(layerPolygon)
         this.fire('polygon.add', {
           layerPolygon,
           coordinates,
@@ -220,7 +232,7 @@ export const LeafletIsolines = L.Layer.extend({
   },
   createPolyline (coordinates, options) {
     if (!L.polylineDecorator) {
-      console.warn('You can use https://github.com/bbecquet/Leaflet.PolylineDecorator for draw polylines')
+      // console.warn('You can use https://github.com/bbecquet/Leaflet.PolylineDecorator for draw polylines')
       return L.polyline(
         coordinates,
         options
@@ -263,6 +275,7 @@ export const LeafletIsolines = L.Layer.extend({
     this._isolinesLayers = []
   },
   _handleError (e) {
+    console.error(e)
     setTimeout(() => {
       this.fire('error', {
         msg: e.toString()
